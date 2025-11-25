@@ -1,10 +1,11 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// --- 1. MANEJO DE ESTADOS ---
+// --- 1. MANEJO DE ESTADOS Y VARIABLES GLOBALES ---
 let gameState = 'MENU'; // 'MENU', 'OPTIONS', 'PLAYING', 'PAUSED', 'GAME_OVER'
 let score = 0;
 let isMusicOn = true; 
+let masterVolume = 0.5; // Volumen general (0.0 a 1.0)
 
 // --- 1.2. DEFINICIÓN DE CARRETERAS ---
 const roadWidth = 80;
@@ -27,11 +28,44 @@ const verticalRoad2 = {
     height: canvas.height
 };
 
-// --- 1.5. OBJETOS DE AUDIO ---
+// --- 1.5. OBJETOS DE AUDIO Y EFECTOS ---
 const gameMusic = new Audio('musica/inicio.mp3'); 
 gameMusic.loop = true;
+// La música de fondo suele ser más suave, así que usamos un % del volumen maestro
+gameMusic.volume = masterVolume * 0.6; 
 
-// --- 1.5. VARIABLES DE TECLAS ---
+const sfx = {
+    pickup: new Audio('musica/pickupstudent.wav'),
+    crash: new Audio('musica/explosion.wav'), 
+    lose:  new Audio('musica/gameover.mp3'),
+    click: new Audio('musica/click.wav'),
+    pause: new Audio('musica/pausa.wav') 
+};
+
+// Función auxiliar para reproducir efectos
+function playSfx(soundName) {
+    if (isMusicOn && sfx[soundName]) {
+        sfx[soundName].currentTime = 0; 
+        // Los efectos usan el volumen maestro completo
+        sfx[soundName].volume = masterVolume;    
+        sfx[soundName].play().catch(e => console.error("Error SFX:", e));
+    }
+}
+
+// Función para ajustar volumen global
+function adjustVolume(amount) {
+    masterVolume += amount;
+    // Limitar entre 0.0 y 1.0
+    if (masterVolume > 1.0) masterVolume = 1.0;
+    if (masterVolume < 0.0) masterVolume = 0.0;
+    
+    // Ajustar música en tiempo real si está sonando
+    if (isMusicOn) {
+        gameMusic.volume = masterVolume * 0.6;
+    }
+}
+
+// --- 1.6. VARIABLES DE TECLAS ---
 const keyBindings = {
     pause: 'p',
     escape: 'Escape',
@@ -52,18 +86,29 @@ const amet = { x: canvas.width / 2 - 25, y: 50, baseWidth: 50, baseHeight: 30, w
 const startButton = { x: canvas.width / 2 - 100, y: canvas.height / 2, width: 200, height: 50, color: 'green', text: 'Iniciar Juego' };
 const optionsButton = { x: canvas.width / 2 - 100, y: canvas.height / 2 + 70, width: 200, height: 50, color: 'gray', text: 'Opciones' };
 const testAudioButton = { x: canvas.width / 2 - 100, y: canvas.height / 2 + 140, width: 200, height: 50, color: 'orange', text: 'Probar Audio' };
+
+// Botones de Opciones
 const toggleMusicButton = { x: canvas.width/2 - 150, y: 150, width: 300, height: 40, action: 'toggleMusic', text: 'Música' };
+
+// NUEVOS BOTONES DE VOLUMEN (Debajo de Música)
+const volumeDownButton = { x: canvas.width/2 - 150, y: 210, width: 60, height: 40, text: '-' };
+const volumeUpButton   = { x: canvas.width/2 + 90, y: 210, width: 60, height: 40, text: '+' };
+
+// Reasignación de teclas (Movidas más abajo para hacer espacio)
 const rebindButtons = {
-    pause:  { x: canvas.width/2 - 150, y: 210, width: 300, height: 40, action: 'pause', text: 'Pausa' },
-    escape: { x: canvas.width/2 - 150, y: 260, width: 300, height: 40, action: 'escape', text: 'Escape' },
-    up:     { x: canvas.width/2 - 150, y: 310, width: 300, height: 40, action: 'up', text: 'Arriba' },
-    down:   { x: canvas.width/2 - 150, y: 360, width: 300, height: 40, action: 'down', text: 'Abajo' },
-    left:   { x: canvas.width/2 - 150, y: 410, width: 300, height: 40, action: 'left', text: 'Izquierda' },
-    right:  { x: canvas.width/2 - 150, y: 460, width: 300, height: 40, action: 'right', text: 'Derecha' }
+    pause:  { x: canvas.width/2 - 150, y: 270, width: 300, height: 40, action: 'pause', text: 'Pausa' },
+    escape: { x: canvas.width/2 - 150, y: 320, width: 300, height: 40, action: 'escape', text: 'Escape' },
+    up:     { x: canvas.width/2 - 150, y: 370, width: 300, height: 40, action: 'up', text: 'Arriba' },
+    down:   { x: canvas.width/2 - 150, y: 420, width: 300, height: 40, action: 'down', text: 'Abajo' },
+    left:   { x: canvas.width/2 - 150, y: 470, width: 300, height: 40, action: 'left', text: 'Izquierda' },
+    right:  { x: canvas.width/2 - 150, y: 520, width: 300, height: 40, action: 'right', text: 'Derecha' }
 };
-const optionsBackButton = { x: canvas.width/2 - 100, y: 520, width: 200, height: 50, color: 'gray', text: 'Volver' };
+
+// Botón volver (ajustado un poco más abajo)
+const optionsBackButton = { x: canvas.width/2 - 100, y: 570, width: 200, height: 40, color: 'gray', text: 'Volver' };
 
 const keys = {};
+let lastHoveredButton = null; 
 
 // --- 4. MANEJADORES DE EVENTOS ---
 window.addEventListener('keydown', (e) => {
@@ -71,10 +116,13 @@ window.addEventListener('keydown', (e) => {
     if (currentRebindingAction) {
         keyBindings[currentRebindingAction] = e.key; 
         currentRebindingAction = null; 
+        playSfx('click'); 
         return; 
     }
 
     if (e.key === keyBindings.pause) {
+        playSfx('pause'); 
+
         if (gameState === 'PLAYING') {
             gameState = 'PAUSED';
             manageMusic('PAUSED'); 
@@ -95,6 +143,7 @@ window.addEventListener('keydown', (e) => {
     }
     
     if (e.key === 'Enter' && gameState === 'GAME_OVER') {
+        playSfx('click');
         gameState = 'PLAYING';
         manageMusic('PLAYING'); 
         resetGame();
@@ -122,16 +171,19 @@ canvas.addEventListener('click', (e) => {
 
     if (gameState === 'MENU') {
         if (isPointInRect(mouse, startButton)) {
+            playSfx('click'); 
             gameState = 'PLAYING';
             manageMusic('PLAYING'); 
             resetGame();
         }
         if (isPointInRect(mouse, optionsButton)) {
+            playSfx('click'); 
             gameState = 'OPTIONS'; 
             manageMusic('OPTIONS'); 
         }
         
         if (isPointInRect(mouse, testAudioButton)) {
+            playSfx('click'); 
             console.log('Probando audio...');
             gameMusic.currentTime = 0;
             gameMusic.play().catch(e => {
@@ -142,23 +194,78 @@ canvas.addEventListener('click', (e) => {
     
     } else if (gameState === 'OPTIONS') {
         if (isPointInRect(mouse, optionsBackButton)) {
+            playSfx('click'); 
             gameState = 'MENU';
             manageMusic('MENU'); 
         }
 
         if (isPointInRect(mouse, toggleMusicButton)) {
+            playSfx('click'); 
             isMusicOn = !isMusicOn; 
             if (!isMusicOn) {
                 manageMusic(gameState); 
+            } else {
+                gameMusic.play();
             }
+        }
+        
+        // --- LÓGICA DE VOLUMEN ---
+        if (isPointInRect(mouse, volumeDownButton)) {
+            playSfx('click');
+            adjustVolume(-0.1); // Bajar 10%
+        }
+        if (isPointInRect(mouse, volumeUpButton)) {
+            playSfx('click');
+            adjustVolume(0.1); // Subir 10%
         }
 
         for (const button of Object.values(rebindButtons)) {
             if (isPointInRect(mouse, button)) {
+                playSfx('click'); 
                 currentRebindingAction = button.action; 
             }
         }
     }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouse = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+    };
+
+    let currentHoveredButton = null;
+    let activeButtons = [];
+
+    if (gameState === 'MENU') {
+        activeButtons = [startButton, optionsButton, testAudioButton];
+    } else if (gameState === 'OPTIONS') {
+        // Agregamos los nuevos botones de volumen a la lista de "hover"
+        activeButtons = [
+            optionsBackButton, 
+            toggleMusicButton, 
+            volumeDownButton, 
+            volumeUpButton, 
+            ...Object.values(rebindButtons)
+        ];
+    }
+
+    for (let btn of activeButtons) {
+        if (isPointInRect(mouse, btn)) {
+            currentHoveredButton = btn;
+            break; 
+        }
+    }
+
+    if (currentHoveredButton && currentHoveredButton !== lastHoveredButton) {
+        playSfx('click'); 
+        canvas.style.cursor = 'pointer'; 
+    } else if (!currentHoveredButton) {
+        canvas.style.cursor = 'default'; 
+    }
+
+    lastHoveredButton = currentHoveredButton;
 });
 
 // --- 5. FUNCIONES DE LÓGICA ---
@@ -169,8 +276,14 @@ function manageMusic(newState) {
     }
 
     if (newState === 'PAUSED') {
+        gameMusic.volume = masterVolume * 0.3; // Más bajo en pausa
+    } else if (newState === 'PLAYING') {
+        gameMusic.volume = masterVolume * 0.6; // Volumen normal
+        gameMusic.play().catch(e => console.error("Error música:", e));
+    } else if (newState === 'GAME_OVER') {
+        gameMusic.pause();
         gameMusic.currentTime = 0;
-        gameMusic.play().catch(e => console.error("Error al reproducir música:", e));
+        playSfx('lose'); 
     } else {
         gameMusic.pause(); 
     }
@@ -278,6 +391,7 @@ function update() {
             updateAmetMovement(); 
 
             if (!isPlayerOnRoad()) {
+                playSfx('crash'); 
                 gameState = 'GAME_OVER';
                 manageMusic('GAME_OVER');
                 return; 
@@ -285,12 +399,14 @@ function update() {
 
             if (checkCollision(player, student)) {
                 score++;
+                playSfx('pickup'); 
                 const newStudentPos = getValidSpawnPoint(student.width, student.height);
                 student.x = newStudentPos.x;
                 student.y = newStudentPos.y;
             }
 
             if (checkCollision(player, obstacle) || checkCollision(player, amet)) {
+                playSfx('crash'); 
                 gameState = 'GAME_OVER';
                 manageMusic('GAME_OVER'); 
             }
@@ -325,7 +441,6 @@ function drawMainMenu() {
     ctx.fillStyle = testAudioButton.color;
     ctx.fillRect(testAudioButton.x, testAudioButton.y, testAudioButton.width, testAudioButton.height);
     ctx.fillStyle = 'white';
-    // --- LÍNEA CORREGIDA ---
     ctx.font = '30px Arial'; 
     ctx.fillText(testAudioButton.text, canvas.width / 2, testAudioButton.y + 35);
 }
@@ -336,17 +451,37 @@ function drawOptionsMenu() {
     ctx.textAlign = 'center';
     ctx.fillText('Opciones', canvas.width / 2, 100);
 
+    // -- Botón Música --
     ctx.font = '20px Arial';
     const musicText = toggleMusicButton.text + (isMusicOn ? ': Activada' : ': Desactivada');
     const musicColor = isMusicOn ? 'green' : 'red';
-
     ctx.fillStyle = musicColor;
     ctx.fillRect(toggleMusicButton.x, toggleMusicButton.y, toggleMusicButton.width, toggleMusicButton.height);
-    
     ctx.fillStyle = 'white';
     ctx.textAlign = 'left';
     ctx.fillText(musicText, toggleMusicButton.x + 10, toggleMusicButton.y + 27);
 
+    // -- NUEVO: Control de Volumen --
+    ctx.fillStyle = 'gray';
+    // Botón Menos [-]
+    ctx.fillRect(volumeDownButton.x, volumeDownButton.y, volumeDownButton.width, volumeDownButton.height);
+    // Botón Más [+]
+    ctx.fillRect(volumeUpButton.x, volumeUpButton.y, volumeUpButton.width, volumeUpButton.height);
+    
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.font = '30px Arial';
+    ctx.fillText('-', volumeDownButton.x + 30, volumeDownButton.y + 30);
+    ctx.fillText('+', volumeUpButton.x + 30, volumeUpButton.y + 30);
+    
+    // Texto del % en el medio
+    ctx.fillStyle = 'black';
+    ctx.font = '20px Arial';
+    const volPercent = Math.round(masterVolume * 100) + '%';
+    ctx.fillText(`Volumen: ${volPercent}`, canvas.width / 2, volumeDownButton.y + 27);
+
+
+    // -- Botones de Reasignación --
     for (const button of Object.values(rebindButtons)) {
         ctx.fillStyle = 'gray';
         ctx.fillRect(button.x, button.y, button.width, button.height);
@@ -366,12 +501,13 @@ function drawOptionsMenu() {
         ctx.fillText(keyText, button.x + button.width - 10, button.y + 27);
     }
 
+    // -- Botón Volver --
     ctx.fillStyle = optionsBackButton.color;
     ctx.fillRect(optionsBackButton.x, optionsBackButton.y, optionsBackButton.width, optionsBackButton.height);
     ctx.fillStyle = 'white';
     ctx.font = '30px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(optionsBackButton.text, canvas.width / 2, optionsBackButton.y + 35);
+    ctx.fillText(optionsBackButton.text, canvas.width / 2, optionsBackButton.y + 30);
 }
 
 function drawRoads() {
