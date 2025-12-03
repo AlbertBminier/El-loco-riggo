@@ -10,3 +10,49 @@ background-color: #ffffff;
 border: 2px solid #000000;
 box-shadow: 4px 4px 8px rgba(0,0,0,0.2);
 }
+
+/* --- ESTILOS DE CONTROLES MÓVILES --- */
+#mobile-controls {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    touch-action: manipulation; /* Mejora la respuesta táctil */
+}
+
+.d-pad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+}
+
+.control-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 30px;
+    background-color: #333;
+    color: white;
+    border: 2px solid #555;
+    border-radius: 10px;
+    cursor: pointer;
+    user-select: none; /* Evita que se seleccione el texto al tocar rápido */
+    -webkit-user-select: none;
+    box-shadow: 0 4px #111;
+}
+
+.control-btn:active {
+    background-color: #555;
+    box-shadow: 0 2px #111;
+    transform: translateY(2px);
+}
+
+.action-btn {
+    background-color: #DAA520; /* Color dorado para pausa */
+    color: black;
+}
