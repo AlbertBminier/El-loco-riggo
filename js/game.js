@@ -31,7 +31,6 @@ const verticalRoad2 = {
 // --- 1.5. OBJETOS DE AUDIO Y EFECTOS ---
 const gameMusic = new Audio('musica/inicio.mp3'); 
 gameMusic.loop = true;
-// La música de fondo suele ser más suave, así que usamos un % del volumen maestro
 gameMusic.volume = masterVolume * 0.6; 
 
 const sfx = {
@@ -44,15 +43,12 @@ const sfx = {
 
 // --- 1.7. CARGA DE IMÁGENES ---
 const logoImage = new Image();
-
-// CAMBIO AQUÍ: Agregamos "css/" antes del nombre para indicar la carpeta
 logoImage.src = 'css/lclogo1.png';
 
 // Función auxiliar para reproducir efectos
 function playSfx(soundName) {
     if (isMusicOn && sfx[soundName]) {
         sfx[soundName].currentTime = 0; 
-        // Los efectos usan el volumen maestro completo
         sfx[soundName].volume = masterVolume;    
         sfx[soundName].play().catch(e => console.error("Error SFX:", e));
     }
@@ -61,11 +57,9 @@ function playSfx(soundName) {
 // Función para ajustar volumen global
 function adjustVolume(amount) {
     masterVolume += amount;
-    // Limitar entre 0.0 y 1.0
     if (masterVolume > 1.0) masterVolume = 1.0;
     if (masterVolume < 0.0) masterVolume = 0.0;
     
-    // Ajustar música en tiempo real si está sonando
     if (isMusicOn) {
         gameMusic.volume = masterVolume * 0.6;
     }
@@ -96,11 +90,11 @@ const testAudioButton = { x: canvas.width / 2 - 100, y: canvas.height / 2 + 140,
 // Botones de Opciones
 const toggleMusicButton = { x: canvas.width/2 - 150, y: 150, width: 300, height: 40, action: 'toggleMusic', text: 'Música' };
 
-// NUEVOS BOTONES DE VOLUMEN (Debajo de Música)
+// NUEVOS BOTONES DE VOLUMEN
 const volumeDownButton = { x: canvas.width/2 - 150, y: 210, width: 60, height: 40, text: '-' };
 const volumeUpButton   = { x: canvas.width/2 + 90, y: 210, width: 60, height: 40, text: '+' };
 
-// Reasignación de teclas (Movidas más abajo para hacer espacio)
+// Reasignación de teclas
 const rebindButtons = {
     pause:  { x: canvas.width/2 - 150, y: 270, width: 300, height: 40, action: 'pause', text: 'Pausa' },
     escape: { x: canvas.width/2 - 150, y: 320, width: 300, height: 40, action: 'escape', text: 'Escape' },
@@ -110,7 +104,6 @@ const rebindButtons = {
     right:  { x: canvas.width/2 - 150, y: 520, width: 300, height: 40, action: 'right', text: 'Derecha' }
 };
 
-// Botón volver (ajustado un poco más abajo)
 const optionsBackButton = { x: canvas.width/2 - 100, y: 570, width: 200, height: 40, color: 'gray', text: 'Volver' };
 
 const keys = {};
@@ -215,14 +208,13 @@ canvas.addEventListener('click', (e) => {
             }
         }
         
-        // --- LÓGICA DE VOLUMEN ---
         if (isPointInRect(mouse, volumeDownButton)) {
             playSfx('click');
-            adjustVolume(-0.1); // Bajar 10%
+            adjustVolume(-0.1); 
         }
         if (isPointInRect(mouse, volumeUpButton)) {
             playSfx('click');
-            adjustVolume(0.1); // Subir 10%
+            adjustVolume(0.1); 
         }
 
         for (const button of Object.values(rebindButtons)) {
@@ -247,7 +239,6 @@ canvas.addEventListener('mousemove', (e) => {
     if (gameState === 'MENU') {
         activeButtons = [startButton, optionsButton, testAudioButton];
     } else if (gameState === 'OPTIONS') {
-        // Agregamos los nuevos botones de volumen a la lista de "hover"
         activeButtons = [
             optionsBackButton, 
             toggleMusicButton, 
@@ -282,9 +273,9 @@ function manageMusic(newState) {
     }
 
     if (newState === 'PAUSED') {
-        gameMusic.volume = masterVolume * 0.3; // Más bajo en pausa
+        gameMusic.volume = masterVolume * 0.3; 
     } else if (newState === 'PLAYING') {
-        gameMusic.volume = masterVolume * 0.6; // Volumen normal
+        gameMusic.volume = masterVolume * 0.6; 
         gameMusic.play().catch(e => console.error("Error música:", e));
     } else if (newState === 'GAME_OVER') {
         gameMusic.pause();
@@ -329,7 +320,6 @@ function updateMovement() {
 
 function updateAmetMovement() {
     amet.x += amet.dx;
-
     amet.width = amet.baseWidth;
     amet.height = amet.baseHeight;
     
@@ -344,7 +334,6 @@ function updateAmetMovement() {
         amet.direction = 'right';
     }
 }
-
 
 function checkCollision(rect1, rect2) {
     return (
@@ -406,6 +395,14 @@ function update() {
             if (checkCollision(player, student)) {
                 score++;
                 playSfx('pickup'); 
+
+                // --- AGREGADO: AUMENTO DE DIFICULTAD ---
+                // Aumentamos velocidad del AMET y actualizamos su dirección
+                amet.speed += 0.5; 
+                if (amet.dx > 0) amet.dx = amet.speed;
+                else amet.dx = -amet.speed;
+                // ---------------------------------------
+
                 const newStudentPos = getValidSpawnPoint(student.width, student.height);
                 student.x = newStudentPos.x;
                 student.y = newStudentPos.y;
@@ -427,24 +424,15 @@ function update() {
 
 // --- Funciones de Dibujo ---
 function drawMainMenu() {
-    // --- DIBUJAR LOGO (NUEVO) ---
-    // Verificamos si la imagen ya cargó correctamente antes de dibujarla
+    // --- DIBUJAR LOGO ---
     if (logoImage.complete && logoImage.naturalWidth > 0) {
-        // Configuración de tamaño: Ajusta 'targetWidth' si lo quieres más grande o chico
         const targetWidth = 500; 
-        // Calculamos la altura automática para que la imagen no se estire ni aplaste
         const aspectRatio = logoImage.naturalHeight / logoImage.naturalWidth;
         const targetHeight = targetWidth * aspectRatio;
-
-        // Matemáticas para centrar la imagen horizontalmente
         const xPos = (canvas.width - targetWidth) / 2;
-        const yPos = 50; // Margen desde el techo
-
-        // Dibujamos la imagen en el canvas
+        const yPos = 50; 
         ctx.drawImage(logoImage, xPos, yPos, targetWidth, targetHeight);
-
     } else {
-        // PLAN B: Si la imagen falla o no ha cargado, mostramos el texto antiguo temporalmente
         ctx.fillStyle = 'black';
         ctx.font = 'bold 50px Arial';
         ctx.textAlign = 'center';
@@ -452,20 +440,16 @@ function drawMainMenu() {
         ctx.font = '20px Arial';
         ctx.fillText('(Cargando logo...)', canvas.width / 2, 180);
     }
-    // ---------------------------
 
-    // --- DIBUJAR BOTONES (Esto queda igual que antes, quizás ajustamos un poco la altura Y) ---
-    
-    // Ajustamos la posición Y inicial de los botones para dar espacio al logo
+    // --- DIBUJAR BOTONES ---
     const buttonsStartY = canvas.height / 2 + 20; 
 
     // Botón Iniciar
-    startButton.y = buttonsStartY; // Actualizamos la posición Y del objeto botón
+    startButton.y = buttonsStartY; 
     ctx.fillStyle = startButton.color;
     ctx.fillRect(startButton.x, startButton.y, startButton.width, startButton.height);
     ctx.fillStyle = 'white';
     ctx.font = '30px Arial';
-    // Importante: startButton.text se dibuja relativo a startButton.y
     ctx.fillText(startButton.text, canvas.width / 2, startButton.y + 35);
 
     // Botón Opciones
@@ -481,6 +465,24 @@ function drawMainMenu() {
     ctx.fillRect(testAudioButton.x, testAudioButton.y, testAudioButton.width, testAudioButton.height);
     ctx.fillStyle = 'white'; 
     ctx.fillText(testAudioButton.text, canvas.width / 2, testAudioButton.y + 35);
+
+    // --- AGREGADO: INSTRUCCIONES RÁPIDAS EN PANTALLA ---
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    
+    // Título de la sección
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText('--- CÓMO JUGAR ---', canvas.width / 2, canvas.height - 90);
+
+    // Iconos y Texto
+    ctx.font = '14px Arial';
+    ctx.fillText('Moverse: [ FLECHAS ]', canvas.width / 2, canvas.height - 65);
+    ctx.fillText('Pausar: [ P ]   |   Salir: [ ESC ]', canvas.width / 2, canvas.height - 40);
+    
+    // Nota de dificultad
+    ctx.fillStyle = '#FFD700'; // Color dorado
+    ctx.font = 'italic 12px Arial';
+    ctx.fillText('¡Cuidado! La AMET se vuelve más rápida...', canvas.width / 2, canvas.height - 15);
 }
 
 function drawOptionsMenu() {
@@ -489,7 +491,7 @@ function drawOptionsMenu() {
     ctx.textAlign = 'center';
     ctx.fillText('Opciones', canvas.width / 2, 100);
 
-    // -- Botón Música --
+    // Botón Música
     ctx.font = '20px Arial';
     const musicText = toggleMusicButton.text + (isMusicOn ? ': Activada' : ': Desactivada');
     const musicColor = isMusicOn ? 'green' : 'red';
@@ -499,11 +501,9 @@ function drawOptionsMenu() {
     ctx.textAlign = 'left';
     ctx.fillText(musicText, toggleMusicButton.x + 10, toggleMusicButton.y + 27);
 
-    // -- NUEVO: Control de Volumen --
+    // Control de Volumen
     ctx.fillStyle = 'gray';
-    // Botón Menos [-]
     ctx.fillRect(volumeDownButton.x, volumeDownButton.y, volumeDownButton.width, volumeDownButton.height);
-    // Botón Más [+]
     ctx.fillRect(volumeUpButton.x, volumeUpButton.y, volumeUpButton.width, volumeUpButton.height);
     
     ctx.fillStyle = 'white';
@@ -512,14 +512,12 @@ function drawOptionsMenu() {
     ctx.fillText('-', volumeDownButton.x + 30, volumeDownButton.y + 30);
     ctx.fillText('+', volumeUpButton.x + 30, volumeUpButton.y + 30);
     
-    // Texto del % en el medio
     ctx.fillStyle = 'black';
     ctx.font = '20px Arial';
     const volPercent = Math.round(masterVolume * 100) + '%';
     ctx.fillText(`Volumen: ${volPercent}`, canvas.width / 2, volumeDownButton.y + 27);
 
-
-    // -- Botones de Reasignación --
+    // Botones de Reasignación
     for (const button of Object.values(rebindButtons)) {
         ctx.fillStyle = 'gray';
         ctx.fillRect(button.x, button.y, button.width, button.height);
@@ -539,7 +537,7 @@ function drawOptionsMenu() {
         ctx.fillText(keyText, button.x + button.width - 10, button.y + 27);
     }
 
-    // -- Botón Volver --
+    // Botón Volver
     ctx.fillStyle = optionsBackButton.color;
     ctx.fillRect(optionsBackButton.x, optionsBackButton.y, optionsBackButton.width, optionsBackButton.height);
     ctx.fillStyle = 'white';
@@ -549,78 +547,57 @@ function drawOptionsMenu() {
 }
 
 function drawRoads() {
-    // Configuración visual
-    const roadColor = '#555555'; // Asfalto gris medio
-    const curbColor = '#CCCCCC'; // Bordillo blanco/gris claro
-    const lineColor = '#FFD700'; // Líneas amarillas (estilo urbano)
+    const roadColor = '#555555';
+    const curbColor = '#CCCCCC';
+    const lineColor = '#FFD700';
     const curbSize = 4;
 
-    // Función auxiliar para dibujar un tramo de carretera
     function drawLane(rect, isVertical) {
-        // 1. Bordillo (Base más ancha)
         ctx.fillStyle = curbColor;
         ctx.fillRect(rect.x - curbSize, rect.y - curbSize, rect.width + curbSize*2, rect.height + curbSize*2);
         
-        // 2. Asfalto
         ctx.fillStyle = roadColor;
         ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
 
-        // 3. Líneas centrales
         ctx.beginPath();
         ctx.strokeStyle = lineColor;
         ctx.lineWidth = 4;
-        ctx.setLineDash([20, 20]); // Línea discontinua
+        ctx.setLineDash([20, 20]); 
         
         if (!isVertical) {
-            // Horizontal
             ctx.moveTo(rect.x, rect.y + rect.height / 2);
             ctx.lineTo(rect.x + rect.width, rect.y + rect.height / 2);
         } else {
-            // Vertical
             ctx.moveTo(rect.x + rect.width / 2, rect.y);
             ctx.lineTo(rect.x + rect.width / 2, rect.y + rect.height);
         }
         ctx.stroke();
-        ctx.setLineDash([]); // Reset
+        ctx.setLineDash([]); 
     }
 
     drawLane(horizontalRoad, false);
     drawLane(verticalRoad1, true);
     drawLane(verticalRoad2, true);
     
-    // Dibujar intersecciones (parches de asfalto para tapar líneas que se cruzan)
     ctx.fillStyle = roadColor;
-    // Intersección 1
     ctx.fillRect(verticalRoad1.x, horizontalRoad.y, verticalRoad1.width, horizontalRoad.height);
-    // Intersección 2
     ctx.fillRect(verticalRoad2.x, horizontalRoad.y, verticalRoad2.width, horizontalRoad.height);
 }
 
 function drawGameObjects() {
-    drawRoads(); // Dibuja las nuevas carreteras bonitas
-
-    // 1. Dibuja al ESTUDIANTE
+    drawRoads(); 
     drawSpriteStudent(student.x, student.y, student.width, student.height);
-
-    // 2. Dibuja el OBSTÁCULO (Bache)
     drawSpriteHole(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-
-    // 3. Dibuja la PATRULLA (AMET)
-    // Nota: La patrulla es negra, pero con luces. 
     drawSpriteAmet(amet.x, amet.y, amet.width, amet.height);
-
-    // 4. Dibuja al JUGADOR (El Bus) al final para que aparezca encima de baches si pasa sobre ellos
     drawSpriteBus(player.x, player.y, player.width, player.height, player.direction);
     
-    // HUD (Puntuación) con estilo mejorado
+    // HUD
     ctx.fillStyle = 'white';
     ctx.font = 'bold 24px Arial';
     ctx.shadowColor = "black";
     ctx.shadowBlur = 4;
     ctx.textAlign = 'left';
     ctx.fillText(`Estudiantes: ${score}`, 20, 40);
-    
-    // Reset de sombras
     ctx.shadowBlur = 0;
 }
 
@@ -648,13 +625,10 @@ function drawPauseMenu() {
 }
 
 function draw() {
-    // --- FONDO DE CÉSPED MEJORADO ---
-    ctx.fillStyle = '#2d8a2d'; // Verde base
+    ctx.fillStyle = '#2d8a2d'; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Dibujar un patrón simple de "ruido" para simular textura (opcional, pero se ve bien)
-    // Para no recargar el rendimiento, dibujamos puntos estáticos grandes
-    ctx.fillStyle = '#246b24'; // Verde más oscuro
+    ctx.fillStyle = '#246b24'; 
     for(let i=0; i<canvas.width; i+=50) {
         for(let j=0; j<canvas.height; j+=50) {
             if ((i+j)%100 === 0) ctx.fillRect(i, j, 5, 5);
@@ -701,6 +675,8 @@ function resetGame() {
     obstacle.x = obstaclePos.x;
     obstacle.y = obstaclePos.y;
     
+    // --- AGREGADO: RESET DE DIFICULTAD ---
+    amet.speed = 3; // Volvemos a la velocidad normal al reiniciar
     amet.x = canvas.width / 2 - 25;
     amet.y = horizontalRoad.y + (horizontalRoad.height / 2) - (amet.baseHeight / 2);
     amet.dx = amet.speed; 
@@ -722,7 +698,6 @@ gameLoop();
 
 // --- 10. FUNCIONES DE ARTE (SPRITES) ---
 
-// Dibuja el Autobús (Player)
 function drawSpriteBus(x, y, w, h, dir) {
     ctx.save();
     
@@ -731,37 +706,32 @@ function drawSpriteBus(x, y, w, h, dir) {
     ctx.fillRect(x + 5, y + 5, w, h);
 
     // Carrocería Amarilla
-    ctx.fillStyle = '#FFD700'; // Amarillo Escolar
-    ctx.strokeStyle = '#DAA520'; // Borde dorado oscuro
+    ctx.fillStyle = '#FFD700'; 
+    ctx.strokeStyle = '#DAA520'; 
     ctx.lineWidth = 2;
     
-    // Bordes redondeados simulados
     ctx.fillRect(x, y, w, h);
     ctx.strokeRect(x, y, w, h);
 
-    // Detalles según la dirección (Top-Down View)
-    ctx.fillStyle = '#87CEEB'; // Ventanas azules
+    // Detalles según la dirección 
+    ctx.fillStyle = '#87CEEB'; 
     
     if (dir === 'left' || dir === 'right') {
-        // Ventanas laterales
         const windowW = w / 4;
         const windowH = h - 6;
         ctx.fillRect(x + 5, y + 3, windowW, windowH);
         ctx.fillRect(x + 5 + windowW + 2, y + 3, windowW, windowH);
         ctx.fillRect(x + 5 + (windowW + 2)*2, y + 3, windowW, windowH);
         
-        // Ruedas
         ctx.fillStyle = '#333';
-        ctx.fillRect(x + 10, y + h, 10, 4); // Abajo
+        ctx.fillRect(x + 10, y + h, 10, 4); 
         ctx.fillRect(x + w - 20, y + h, 10, 4); 
-        ctx.fillRect(x + 10, y - 4, 10, 4); // Arriba
+        ctx.fillRect(x + 10, y - 4, 10, 4); 
         ctx.fillRect(x + w - 20, y - 4, 10, 4);
 
-    } else { // Arriba o Abajo
-        // Ventana frontal/trasera
+    } else { 
         ctx.fillRect(x + 3, y + 10, w - 6, h / 3);
         
-        // Ruedas laterales
         ctx.fillStyle = '#333';
         ctx.fillRect(x - 4, y + 5, 4, 10);
         ctx.fillRect(x + w, y + 5, 4, 10);
@@ -769,45 +739,36 @@ function drawSpriteBus(x, y, w, h, dir) {
         ctx.fillRect(x + w, y + h - 15, 4, 10);
     }
     
-    // Techo
-    ctx.fillStyle = '#FFA500'; // Naranja
+    ctx.fillStyle = '#FFA500'; 
     ctx.fillRect(x + w/4, y + h/4, w/2, h/2);
 
     ctx.restore();
 }
 
-// Dibuja al Estudiante (Coleccionable)
 function drawSpriteStudent(x, y, w, h) {
     ctx.save();
-    // Cabeza
-    ctx.fillStyle = '#F1C27D'; // Piel
+    ctx.fillStyle = '#F1C27D'; 
     ctx.beginPath();
     ctx.arc(x + w/2, y + h/2 - 5, w/2, 0, Math.PI * 2);
     ctx.fill();
     
-    // Camisa (Uniforme)
     ctx.fillStyle = 'white';
     ctx.fillRect(x, y + h/2, w, h/2);
     
-    // Pantalón
     ctx.fillStyle = 'darkblue';
     ctx.fillRect(x + 2, y + h - 5, w/2 - 2, 5);
     ctx.fillRect(x + w/2 + 2, y + h - 5, w/2 - 2, 5);
     
-    // Mochila (Punto distintivo)
     ctx.fillStyle = 'green';
     ctx.fillRect(x + w/4, y + h/2 + 2, w/2, h/2 - 2);
     ctx.restore();
 }
 
-// Dibuja la Patrulla (Enemigo)
 function drawSpriteAmet(x, y, w, h) {
     ctx.save();
-    // Cuerpo del auto
-    ctx.fillStyle = '#1a1a1a'; // Negro casi puro
+    ctx.fillStyle = '#1a1a1a'; 
     ctx.fillRect(x, y, w, h);
     
-    // Luces de Sirena (Parpadeo)
     const time = Date.now();
     if (Math.floor(time / 200) % 2 === 0) {
         ctx.fillStyle = 'red';
@@ -821,17 +782,15 @@ function drawSpriteAmet(x, y, w, h) {
         ctx.fillRect(x + w/2 + 2, y + 2, w/2 - 4, h/2);
     }
     
-    // Texto "AMET"
     ctx.fillStyle = 'white';
     ctx.font = '10px Arial';
     ctx.fillText('AMET', x + w/2 - 12, y + h - 2);
     ctx.restore();
 }
 
-// Dibuja el Bache (Obstáculo)
 function drawSpriteHole(x, y, w, h) {
     ctx.save();
-    ctx.fillStyle = '#444'; // Gris oscuro
+    ctx.fillStyle = '#444'; 
     ctx.beginPath();
     ctx.ellipse(x + w/2, y + h/2, w/2, h/3, 0, 0, 2 * Math.PI);
     ctx.fill();
