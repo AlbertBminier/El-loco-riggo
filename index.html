@@ -9,7 +9,23 @@
 <body>
 <h1>"El Loco Riggo"</h1>
 <p>Usa las flechas para mover el autobús. Recoge al estudiante (verde) y evita el obstáculo (rojo).</p>
-<canvas id="gameCanvas" width="800" height="600"></canvas>
+<canvas id="gameCanvas" width="800" height="600">
+<div id="mobile-controls">
+    <div class="d-pad">
+        <div class="row">
+            <button id="btnUp" class="control-btn">⬆️</button>
+        </div>
+        <div class="row">
+            <button id="btnLeft" class="control-btn">⬅️</button>
+            <button id="btnPause" class="control-btn action-btn">⏸️</button> <button id="btnRight" class="control-btn">➡️</button>
+        </div>
+        <div class="row">
+            <button id="btnDown" class="control-btn">⬇️</button>
+        </div>
+    </div>
+</div>
+  
+</canvas>
 <script src="js/game.js"></script>
 </body>
 </html>
