@@ -511,53 +511,79 @@ function drawOptionsMenu() {
 }
 
 function drawRoads() {
-    const laneWidth = 10;
-    const dashLength = 20;
-    const gapLength = 20;
+    // Configuración visual
+    const roadColor = '#555555'; // Asfalto gris medio
+    const curbColor = '#CCCCCC'; // Bordillo blanco/gris claro
+    const lineColor = '#FFD700'; // Líneas amarillas (estilo urbano)
+    const curbSize = 4;
+
+    // Función auxiliar para dibujar un tramo de carretera
+    function drawLane(rect, isVertical) {
+        // 1. Bordillo (Base más ancha)
+        ctx.fillStyle = curbColor;
+        ctx.fillRect(rect.x - curbSize, rect.y - curbSize, rect.width + curbSize*2, rect.height + curbSize*2);
+        
+        // 2. Asfalto
+        ctx.fillStyle = roadColor;
+        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+
+        // 3. Líneas centrales
+        ctx.beginPath();
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 4;
+        ctx.setLineDash([20, 20]); // Línea discontinua
+        
+        if (!isVertical) {
+            // Horizontal
+            ctx.moveTo(rect.x, rect.y + rect.height / 2);
+            ctx.lineTo(rect.x + rect.width, rect.y + rect.height / 2);
+        } else {
+            // Vertical
+            ctx.moveTo(rect.x + rect.width / 2, rect.y);
+            ctx.lineTo(rect.x + rect.width / 2, rect.y + rect.height);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset
+    }
+
+    drawLane(horizontalRoad, false);
+    drawLane(verticalRoad1, true);
+    drawLane(verticalRoad2, true);
     
-    ctx.fillStyle = '#333'; 
-    ctx.fillRect(horizontalRoad.x, horizontalRoad.y, horizontalRoad.width, horizontalRoad.height);
-    ctx.fillRect(verticalRoad1.x, verticalRoad1.y, verticalRoad1.width, verticalRoad1.height);
-    ctx.fillRect(verticalRoad2.x, verticalRoad2.y, verticalRoad2.width, verticalRoad2.height);
-
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = laneWidth;
-    ctx.setLineDash([dashLength, gapLength]);
-
-    ctx.beginPath();
-    ctx.moveTo(horizontalRoad.x, horizontalRoad.y + horizontalRoad.height / 2);
-    ctx.lineTo(horizontalRoad.x + horizontalRoad.width, horizontalRoad.y + horizontalRoad.height / 2);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(verticalRoad1.x + verticalRoad1.width / 2, verticalRoad1.y);
-    ctx.lineTo(verticalRoad1.x + verticalRoad1.width / 2, verticalRoad1.y + verticalRoad1.height);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(verticalRoad2.x + verticalRoad2.width / 2, verticalRoad2.y);
-    ctx.lineTo(verticalRoad2.x + verticalRoad2.width / 2, verticalRoad2.y + verticalRoad2.height);
-    ctx.stroke();
-
-    ctx.setLineDash([]); 
+    // Dibujar intersecciones (parches de asfalto para tapar líneas que se cruzan)
+    ctx.fillStyle = roadColor;
+    // Intersección 1
+    ctx.fillRect(verticalRoad1.x, horizontalRoad.y, verticalRoad1.width, horizontalRoad.height);
+    // Intersección 2
+    ctx.fillRect(verticalRoad2.x, horizontalRoad.y, verticalRoad2.width, horizontalRoad.height);
 }
 
 function drawGameObjects() {
-    drawRoads();
+    drawRoads(); // Dibuja las nuevas carreteras bonitas
 
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
-    ctx.fillStyle = student.color;
-    ctx.fillRect(student.x, student.y, student.width, student.height);
-    ctx.fillStyle = obstacle.color;
-    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-    ctx.fillStyle = amet.color;
-    ctx.fillRect(amet.x, amet.y, amet.width, amet.height);
+    // 1. Dibuja al ESTUDIANTE
+    drawSpriteStudent(student.x, student.y, student.width, student.height);
+
+    // 2. Dibuja el OBSTÁCULO (Bache)
+    drawSpriteHole(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+
+    // 3. Dibuja la PATRULLA (AMET)
+    // Nota: La patrulla es negra, pero con luces. 
+    drawSpriteAmet(amet.x, amet.y, amet.width, amet.height);
+
+    // 4. Dibuja al JUGADOR (El Bus) al final para que aparezca encima de baches si pasa sobre ellos
+    drawSpriteBus(player.x, player.y, player.width, player.height, player.direction);
     
-    ctx.fillStyle = 'black';
-    ctx.font = '24px Arial';
+    // HUD (Puntuación) con estilo mejorado
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 24px Arial';
+    ctx.shadowColor = "black";
+    ctx.shadowBlur = 4;
     ctx.textAlign = 'left';
-    ctx.fillText(`Estudiantes: ${score}`, 10, 30);
+    ctx.fillText(`Estudiantes: ${score}`, 20, 40);
+    
+    // Reset de sombras
+    ctx.shadowBlur = 0;
 }
 
 function drawGameOverScreen() {
@@ -584,8 +610,18 @@ function drawPauseMenu() {
 }
 
 function draw() {
-    ctx.fillStyle = '#228B22'; // Forest Green
+    // --- FONDO DE CÉSPED MEJORADO ---
+    ctx.fillStyle = '#2d8a2d'; // Verde base
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Dibujar un patrón simple de "ruido" para simular textura (opcional, pero se ve bien)
+    // Para no recargar el rendimiento, dibujamos puntos estáticos grandes
+    ctx.fillStyle = '#246b24'; // Verde más oscuro
+    for(let i=0; i<canvas.width; i+=50) {
+        for(let j=0; j<canvas.height; j+=50) {
+            if ((i+j)%100 === 0) ctx.fillRect(i, j, 5, 5);
+        }
+    }
 
     if (gameState === 'PLAYING' || gameState === 'PAUSED') {
         drawGameObjects();
@@ -645,3 +681,123 @@ function gameLoop() {
 
 // --- 9. INICIO DEL JUEGO ---
 gameLoop();
+
+// --- 10. FUNCIONES DE ARTE (SPRITES) ---
+
+// Dibuja el Autobús (Player)
+function drawSpriteBus(x, y, w, h, dir) {
+    ctx.save();
+    
+    // Sombra del autobús
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(x + 5, y + 5, w, h);
+
+    // Carrocería Amarilla
+    ctx.fillStyle = '#FFD700'; // Amarillo Escolar
+    ctx.strokeStyle = '#DAA520'; // Borde dorado oscuro
+    ctx.lineWidth = 2;
+    
+    // Bordes redondeados simulados
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+
+    // Detalles según la dirección (Top-Down View)
+    ctx.fillStyle = '#87CEEB'; // Ventanas azules
+    
+    if (dir === 'left' || dir === 'right') {
+        // Ventanas laterales
+        const windowW = w / 4;
+        const windowH = h - 6;
+        ctx.fillRect(x + 5, y + 3, windowW, windowH);
+        ctx.fillRect(x + 5 + windowW + 2, y + 3, windowW, windowH);
+        ctx.fillRect(x + 5 + (windowW + 2)*2, y + 3, windowW, windowH);
+        
+        // Ruedas
+        ctx.fillStyle = '#333';
+        ctx.fillRect(x + 10, y + h, 10, 4); // Abajo
+        ctx.fillRect(x + w - 20, y + h, 10, 4); 
+        ctx.fillRect(x + 10, y - 4, 10, 4); // Arriba
+        ctx.fillRect(x + w - 20, y - 4, 10, 4);
+
+    } else { // Arriba o Abajo
+        // Ventana frontal/trasera
+        ctx.fillRect(x + 3, y + 10, w - 6, h / 3);
+        
+        // Ruedas laterales
+        ctx.fillStyle = '#333';
+        ctx.fillRect(x - 4, y + 5, 4, 10);
+        ctx.fillRect(x + w, y + 5, 4, 10);
+        ctx.fillRect(x - 4, y + h - 15, 4, 10);
+        ctx.fillRect(x + w, y + h - 15, 4, 10);
+    }
+    
+    // Techo
+    ctx.fillStyle = '#FFA500'; // Naranja
+    ctx.fillRect(x + w/4, y + h/4, w/2, h/2);
+
+    ctx.restore();
+}
+
+// Dibuja al Estudiante (Coleccionable)
+function drawSpriteStudent(x, y, w, h) {
+    ctx.save();
+    // Cabeza
+    ctx.fillStyle = '#F1C27D'; // Piel
+    ctx.beginPath();
+    ctx.arc(x + w/2, y + h/2 - 5, w/2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Camisa (Uniforme)
+    ctx.fillStyle = 'white';
+    ctx.fillRect(x, y + h/2, w, h/2);
+    
+    // Pantalón
+    ctx.fillStyle = 'darkblue';
+    ctx.fillRect(x + 2, y + h - 5, w/2 - 2, 5);
+    ctx.fillRect(x + w/2 + 2, y + h - 5, w/2 - 2, 5);
+    
+    // Mochila (Punto distintivo)
+    ctx.fillStyle = 'green';
+    ctx.fillRect(x + w/4, y + h/2 + 2, w/2, h/2 - 2);
+    ctx.restore();
+}
+
+// Dibuja la Patrulla (Enemigo)
+function drawSpriteAmet(x, y, w, h) {
+    ctx.save();
+    // Cuerpo del auto
+    ctx.fillStyle = '#1a1a1a'; // Negro casi puro
+    ctx.fillRect(x, y, w, h);
+    
+    // Luces de Sirena (Parpadeo)
+    const time = Date.now();
+    if (Math.floor(time / 200) % 2 === 0) {
+        ctx.fillStyle = 'red';
+        ctx.fillRect(x + 2, y + 2, w/2 - 4, h/2);
+        ctx.fillStyle = 'darkblue';
+        ctx.fillRect(x + w/2 + 2, y + 2, w/2 - 4, h/2);
+    } else {
+        ctx.fillStyle = 'darkred';
+        ctx.fillRect(x + 2, y + 2, w/2 - 4, h/2);
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(x + w/2 + 2, y + 2, w/2 - 4, h/2);
+    }
+    
+    // Texto "AMET"
+    ctx.fillStyle = 'white';
+    ctx.font = '10px Arial';
+    ctx.fillText('AMET', x + w/2 - 12, y + h - 2);
+    ctx.restore();
+}
+
+// Dibuja el Bache (Obstáculo)
+function drawSpriteHole(x, y, w, h) {
+    ctx.save();
+    ctx.fillStyle = '#444'; // Gris oscuro
+    ctx.beginPath();
+    ctx.ellipse(x + w/2, y + h/2, w/2, h/3, 0, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.strokeStyle = '#222';
+    ctx.stroke();
+    ctx.restore();
+}
