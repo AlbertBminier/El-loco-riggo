@@ -46,7 +46,7 @@ const sfx = {
 const logoImage = new Image();
 
 // CAMBIO AQUÍ: Agregamos "css/" antes del nombre para indicar la carpeta
-logoImage.src = 'css/lclogo.png';
+logoImage.src = 'css/lclogo1.png';
 
 // Función auxiliar para reproducir efectos
 function playSfx(soundName) {
