@@ -42,6 +42,12 @@ const sfx = {
     pause: new Audio('musica/pausa.wav') 
 };
 
+// --- 1.7. CARGA DE IMÁGENES ---
+const logoImage = new Image();
+
+// CAMBIO AQUÍ: Agregamos "css/" antes del nombre para indicar la carpeta
+logoImage.src = 'css/lclogo.png';
+
 // Función auxiliar para reproducir efectos
 function playSfx(soundName) {
     if (isMusicOn && sfx[soundName]) {
@@ -421,27 +427,59 @@ function update() {
 
 // --- Funciones de Dibujo ---
 function drawMainMenu() {
-    ctx.fillStyle = 'black';
-    ctx.font = '50px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('"El Loco Riggo"', canvas.width / 2, 100); 
+    // --- DIBUJAR LOGO (NUEVO) ---
+    // Verificamos si la imagen ya cargó correctamente antes de dibujarla
+    if (logoImage.complete && logoImage.naturalWidth > 0) {
+        // Configuración de tamaño: Ajusta 'targetWidth' si lo quieres más grande o chico
+        const targetWidth = 500; 
+        // Calculamos la altura automática para que la imagen no se estire ni aplaste
+        const aspectRatio = logoImage.naturalHeight / logoImage.naturalWidth;
+        const targetHeight = targetWidth * aspectRatio;
 
+        // Matemáticas para centrar la imagen horizontalmente
+        const xPos = (canvas.width - targetWidth) / 2;
+        const yPos = 50; // Margen desde el techo
+
+        // Dibujamos la imagen en el canvas
+        ctx.drawImage(logoImage, xPos, yPos, targetWidth, targetHeight);
+
+    } else {
+        // PLAN B: Si la imagen falla o no ha cargado, mostramos el texto antiguo temporalmente
+        ctx.fillStyle = 'black';
+        ctx.font = 'bold 50px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('"El Loco Riggo"', canvas.width / 2, 150);
+        ctx.font = '20px Arial';
+        ctx.fillText('(Cargando logo...)', canvas.width / 2, 180);
+    }
+    // ---------------------------
+
+    // --- DIBUJAR BOTONES (Esto queda igual que antes, quizás ajustamos un poco la altura Y) ---
+    
+    // Ajustamos la posición Y inicial de los botones para dar espacio al logo
+    const buttonsStartY = canvas.height / 2 + 20; 
+
+    // Botón Iniciar
+    startButton.y = buttonsStartY; // Actualizamos la posición Y del objeto botón
     ctx.fillStyle = startButton.color;
     ctx.fillRect(startButton.x, startButton.y, startButton.width, startButton.height);
     ctx.fillStyle = 'white';
     ctx.font = '30px Arial';
+    // Importante: startButton.text se dibuja relativo a startButton.y
     ctx.fillText(startButton.text, canvas.width / 2, startButton.y + 35);
 
+    // Botón Opciones
+    optionsButton.y = buttonsStartY + 70;
     ctx.fillStyle = optionsButton.color;
     ctx.fillRect(optionsButton.x, optionsButton.y, optionsButton.width, optionsButton.height);
     ctx.fillStyle = 'white';
-    ctx.font = '30px Arial';
     ctx.fillText(optionsButton.text, canvas.width / 2, optionsButton.y + 35);
 
+    // Botón Probar Audio
+    testAudioButton.y = buttonsStartY + 140;
     ctx.fillStyle = testAudioButton.color;
     ctx.fillRect(testAudioButton.x, testAudioButton.y, testAudioButton.width, testAudioButton.height);
-    ctx.fillStyle = 'white';
-    ctx.font = '30px Arial'; 
+    ctx.fillStyle = 'white'; 
     ctx.fillText(testAudioButton.text, canvas.width / 2, testAudioButton.y + 35);
 }
 
