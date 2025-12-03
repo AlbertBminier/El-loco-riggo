@@ -90,7 +90,7 @@ const testAudioButton = { x: canvas.width / 2 - 100, y: canvas.height / 2 + 140,
 // Botones de Opciones
 const toggleMusicButton = { x: canvas.width/2 - 150, y: 150, width: 300, height: 40, action: 'toggleMusic', text: 'Música' };
 
-// NUEVOS BOTONES DE VOLUMEN
+// BOTONES DE VOLUMEN
 const volumeDownButton = { x: canvas.width/2 - 150, y: 210, width: 60, height: 40, text: '-' };
 const volumeUpButton   = { x: canvas.width/2 + 90, y: 210, width: 60, height: 40, text: '+' };
 
@@ -465,24 +465,6 @@ function drawMainMenu() {
     ctx.fillRect(testAudioButton.x, testAudioButton.y, testAudioButton.width, testAudioButton.height);
     ctx.fillStyle = 'white'; 
     ctx.fillText(testAudioButton.text, canvas.width / 2, testAudioButton.y + 35);
-
-    // --- AGREGADO: INSTRUCCIONES RÁPIDAS EN PANTALLA ---
-    ctx.fillStyle = 'white';
-    ctx.textAlign = 'center';
-    
-    // Título de la sección
-    ctx.font = 'bold 16px Arial';
-    ctx.fillText('--- CÓMO JUGAR ---', canvas.width / 2, canvas.height - 90);
-
-    // Iconos y Texto
-    ctx.font = '14px Arial';
-    ctx.fillText('Moverse: [ FLECHAS ]', canvas.width / 2, canvas.height - 65);
-    ctx.fillText('Pausar: [ P ]   |   Salir: [ ESC ]', canvas.width / 2, canvas.height - 40);
-    
-    // Nota de dificultad
-    ctx.fillStyle = '#FFD700'; // Color dorado
-    ctx.font = 'italic 12px Arial';
-    ctx.fillText('¡Cuidado! La AMET se vuelve más rápida...', canvas.width / 2, canvas.height - 15);
 }
 
 function drawOptionsMenu() {
