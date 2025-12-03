@@ -109,7 +109,7 @@ const optionsBackButton = { x: canvas.width/2 - 100, y: 570, width: 200, height:
 const keys = {};
 let lastHoveredButton = null; 
 
-// --- 4. MANEJADORES DE EVENTOS ---
+// --- 4. MANEJADORES DE EVENTOS (TECLADO Y MOUSE) ---
 window.addEventListener('keydown', (e) => {
     
     if (currentRebindingAction) {
@@ -265,6 +265,66 @@ canvas.addEventListener('mousemove', (e) => {
     lastHoveredButton = currentHoveredButton;
 });
 
+// --- 4.5. CONTROLES TÁCTILES (MÓVIL) ---
+
+// Función para simular pulsación de tecla
+function simulateKey(key, type) {
+    if (type === 'down') {
+        keys[key] = true;
+    } else {
+        keys[key] = false;
+    }
+}
+
+// Configuración de los botones
+const touchButtons = [
+    { id: 'btnUp', key: 'ArrowUp' },
+    { id: 'btnDown', key: 'ArrowDown' },
+    { id: 'btnLeft', key: 'ArrowLeft' },
+    { id: 'btnRight', key: 'ArrowRight' }
+];
+
+// Asignar eventos a las flechas (esperar a que cargue el DOM o ejecutar si el script está al final)
+setTimeout(() => {
+    touchButtons.forEach(btn => {
+        const element = document.getElementById(btn.id);
+        if (element) {
+            // Eventos para celular (Touch)
+            element.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Evita scroll o zoom
+                simulateKey(btn.key, 'down');
+            }, {passive: false});
+            element.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                simulateKey(btn.key, 'up');
+            }, {passive: false});
+
+            // Eventos para Mouse (PC)
+            element.addEventListener('mousedown', () => simulateKey(btn.key, 'down'));
+            element.addEventListener('mouseup', () => simulateKey(btn.key, 'up'));
+            element.addEventListener('mouseleave', () => simulateKey(btn.key, 'up'));
+        }
+    });
+
+    // Lógica para el botón de PAUSA
+    const btnPause = document.getElementById('btnPause');
+    if (btnPause) {
+        const togglePause = (e) => {
+            e.preventDefault();
+            playSfx('pause');
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                manageMusic('PAUSED');
+            } else if (gameState === 'PAUSED') {
+                gameState = 'PLAYING';
+                manageMusic('PLAYING');
+            }
+        };
+        btnPause.addEventListener('touchstart', togglePause, {passive: false});
+        btnPause.addEventListener('click', togglePause);
+    }
+}, 100); // Pequeño delay para asegurar que el HTML cargó
+
 // --- 5. FUNCIONES DE LÓGICA ---
 function manageMusic(newState) {
     if (!isMusicOn) {
@@ -396,12 +456,11 @@ function update() {
                 score++;
                 playSfx('pickup'); 
 
-                // --- AGREGADO: AUMENTO DE DIFICULTAD ---
-                // Aumentamos velocidad del AMET y actualizamos su dirección
+                // --- DIFICULTAD PROGRESIVA ---
                 amet.speed += 0.5; 
                 if (amet.dx > 0) amet.dx = amet.speed;
                 else amet.dx = -amet.speed;
-                // ---------------------------------------
+                // -----------------------------
 
                 const newStudentPos = getValidSpawnPoint(student.width, student.height);
                 student.x = newStudentPos.x;
@@ -657,8 +716,8 @@ function resetGame() {
     obstacle.x = obstaclePos.x;
     obstacle.y = obstaclePos.y;
     
-    // --- AGREGADO: RESET DE DIFICULTAD ---
-    amet.speed = 3; // Volvemos a la velocidad normal al reiniciar
+    // --- RESET DE DIFICULTAD ---
+    amet.speed = 3; 
     amet.x = canvas.width / 2 - 25;
     amet.y = horizontalRoad.y + (horizontalRoad.height / 2) - (amet.baseHeight / 2);
     amet.dx = amet.speed; 
